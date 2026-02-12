@@ -36,6 +36,8 @@ jobs:
         pwd
         Write-Host "`n=== Listing all files in workspace ==="
         Get-ChildItem -Recurse -Depth 1 | Select-Object Name, FullName | Format-Table
+        Write-Host "`n=== Listing repo root files ==="
+        Get-ChildItem -File | Select-Object Name, FullName | Format-Table
         Write-Host "`n=== Checking for spec file ==="
         if (Test-Path "WeightStation.spec") {
           Write-Host "✓ WeightStation.spec found"
@@ -59,7 +61,20 @@ jobs:
     - name: Build EXE with PyInstaller
       run: |
         Write-Host "Starting PyInstaller build..."
-        pyinstaller WeightStation.spec
+        if (Test-Path "WeightStation.spec") {
+          Write-Host "Using WeightStation.spec"
+          pyinstaller WeightStation.spec
+        } else {
+          Write-Host "WeightStation.spec not found, using CLI one-file build"
+          pyinstaller --onefile `
+            --windowed `
+            --name WeightStation `
+            --add-data "CustomerID.db;." `
+            --add-data "ItemValue.db;." `
+            --add-data "stockinhand.db;." `
+            --hidden-import=serial `
+            main.py
+        }
         if ($LASTEXITCODE -ne 0) {
           Write-Host "PyInstaller failed with exit code: $LASTEXITCODE"
           exit 1
